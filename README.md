@@ -43,7 +43,7 @@ int main() {
 
 Odin Holmes
 Gašper Ažman
-Arthur O'Dwyler
+Arthur O'Dwyer
 Richard Powell
 
 OGAR!
