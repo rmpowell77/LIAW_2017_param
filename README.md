@@ -38,3 +38,13 @@ int main() {
 ```
 
 
+
+### Contributors
+
+Odin Holmes
+Gašper Ažman
+Arthur O'Dwyler
+Richard Powell
+
+OGAR!
+
