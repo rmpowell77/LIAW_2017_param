@@ -26,6 +26,7 @@ int foo(int a, int b, int c);
 using namespace ogar;
 
 CreateNameParameters(
+	foo,
     "a"_p = no_default,
     "b"_p = 98,
     "c"_p = 99,
