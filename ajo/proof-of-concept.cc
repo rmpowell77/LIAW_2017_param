@@ -33,7 +33,8 @@ decltype(auto) find_arg_recursive(KW_FOO kw, Arg&& arg, Rest&&... rest) {
 
 template<class KW_FOO, class... Args>
 decltype(auto) find_arg(KW_FOO kw, Args&&... args) {
-    static_assert((... + std::is_base_of_v<KW_FOO, std::decay_t<Args>>) == 1, "caller provided a duplicate keyword argument");
+    static_assert((... + std::is_base_of_v<KW_FOO, std::decay_t<Args>>) <= 1, "caller provided a duplicate keyword argument");
+    static_assert((... + std::is_base_of_v<KW_FOO, std::decay_t<Args>>) >= 1, "caller provided no value for a required argument");
     return find_arg_recursive(kw, std::forward<Args>(args)...);
 }
 
@@ -46,15 +47,6 @@ public:
             find_arg(KEYWORD{}, std::forward<Args>(args)...).forward_value()
             ...
         );
-    }
-};
-
-template<class KEYWORD>
-class keyword_get {
-public:
-    template<class... Args>
-    decltype(auto) operator()(Args&&... args) const {
-        return find_arg(KEYWORD{}, std::forward<Args>(args)...).forward_value();
     }
 };
 
