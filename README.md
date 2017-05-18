@@ -41,10 +41,10 @@ int main() {
 
 ### Contributors
 
-Odin Holmes
-Gašper Ažman
-Arthur O'Dwyer
-Richard Powell
+	* Odin Holmes
+	* Gašper Ažman
+	* Arthur O'Dwyer
+	* Richard Powell
 
 OGAR!
 
