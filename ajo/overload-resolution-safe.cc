@@ -60,6 +60,7 @@ public:
 
 
 void real_foo(int& a, int b) { a += b; }
+void real_foo(int a, int& b) { b += a; }
 
 using KW_A = KW<std::integral_constant<char, 'A'>>;
 using KW_B = KW<std::integral_constant<char, 'B'>>;
@@ -67,15 +68,17 @@ using KW_B = KW<std::integral_constant<char, 'B'>>;
 template<class... Args>
 auto foo(Args&&... args)
 {
-    return keyword_augmented<
-        KW_A,
-        KW_B
-    >{}(real_foo, std::forward<Args>(args)...);
+    real_foo(
+        keyword_get<KW_A>()(std::forward<Args>(args)...),
+        keyword_get<KW_B>()(std::forward<Args>(args)...)
+    );
 }
 
 int main()
 {
     int a = 1;
+    int b = 1;
     foo(KW_B{} << 3, KW_A{} << a);             // a += 3
-    return a;
+    foo(KW_B{} << b, KW_A{} << std::move(b));  // b += b
+    return a * b;  // 4 * 2
 }
