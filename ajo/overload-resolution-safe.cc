@@ -38,18 +38,6 @@ decltype(auto) find_arg(KW_FOO kw, Args&&... args) {
     return find_arg_recursive(kw, std::forward<Args>(args)...);
 }
 
-template<class... KEYWORD>
-class keyword_augmented {
-public:
-    template<class Func, class... Args>
-    decltype(auto) operator()(Func&& real_function, Args&&... args) const {
-        return std::forward<Func>(real_function)(
-            find_arg(KEYWORD{}, std::forward<Args>(args)...).forward_value()
-            ...
-        );
-    }
-};
-
 template<class KEYWORD>
 class keyword_get {
 public:
