@@ -1,5 +1,5 @@
 
-kwargs :: hana::map<param, {nothing, default<T>, value<T>}>;
+kwargs ::hana::map<param, {nothing, default<T>, value<T>}>;
 
 make_argspec: ordering, defaults, reflow spec -> argspec
 
@@ -21,13 +21,16 @@ auto const argspec = reflow::graph(
     "width"_p = {
       "type"_p = hana::is_numeric,
       "productions"_p = { { "height"_p, "aspect_ratio"_p },
-                          [](auto height, auto aspect_ratio) { return ; } },
-      "checker"_p = [](auto x, reflow::map const& p) { return x > 0; },
+                          [](auto height, auto aspect_ratio) {
+    return; } },
+      "checker"_p = [](auto x, reflow::map const& p) {
+    return x > 0; },
     "height"_p = {
-      [](auto x, reflow::map const& p) { return true; },
+      [](auto x, reflow::map const& p) {
+    return true; },
     "aspect_ratio"_p = {
       [](auto x, reflow::map const& p) {
-        return
+    return
       }
     }
     );
@@ -35,13 +38,8 @@ template <typename... Args,
          std::enable_if<argspec::check(std::declval<Args>()...), nullptr_t> =
              nullptr>
 void foo(Args&&... args) -> decltype(enable_if<argspec::check(args...)>, foo)) {
-  auto const args = reflow::parse(argspec, std::forward<Args>(args)...);
-  auto my_int = args["foo"_p];
-  auto my_something = args["bar"_p];
+  auto const args         = reflow::parse(argspec, std::forward<Args>(args)...);
+  auto       my_int       = args["foo"_p];
+  auto       my_something = args["bar"_p];
   /*...*/
 }
-
-
-
-
-

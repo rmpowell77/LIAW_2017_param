@@ -1,4 +1,8 @@
 
 all: test
 test: test.cpp argo.hpp
-	gcc-7 "$<" -o "$@" -std=c++17 -I"/usr/local/include/"
+	clang++ "$<" -o "$@" \
+		-std=c++1z \
+		-I"/usr/local/include/" \
+		-Wno-gnu-string-literal-operator-template \
+
