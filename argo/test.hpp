@@ -16,4 +16,3 @@ int kwfoo(Args&&... args) {
 inline auto const kwfoo2 = argo::adapt(foo_args, foo);
 
 #endif
-

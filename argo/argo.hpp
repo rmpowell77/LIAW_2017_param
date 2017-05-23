@@ -55,7 +55,8 @@ inline constexpr auto capture_param = [](auto&& param) constexpr {
   using boost::hana::make_pair;
   using boost::hana::type;
 
-  if constexpr(decltype(is_param(param)){}) { return param; }
+  if
+    constexpr(decltype(is_param(param)){}) { return param; }
   else {
     return make_pair(type<decltype(param)>{}, std::addressof(param));
   }
@@ -161,7 +162,8 @@ inline auto const invoke = [](auto argspec, auto&& f, auto&&... fargs) {
       unbox_kwargs(second(type_arg_pairs_and_boxed_params));
   auto const collected_named_type_argptr_pairs =
       collect(named_type_argptr_pairs, named_type_kwargptr_pairs);
-  return argo::invoke_swizzled(argspec.names, collected_named_type_argptr_pairs, f);
+  return argo::invoke_swizzled(argspec.names, collected_named_type_argptr_pairs,
+                               f);
 };
 
 inline auto const adapt = [](auto&& argspec, auto&& f) {
