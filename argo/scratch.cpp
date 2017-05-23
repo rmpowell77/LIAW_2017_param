@@ -38,8 +38,8 @@ template <typename... Args,
          std::enable_if<argspec::check(std::declval<Args>()...), nullptr_t> =
              nullptr>
 void foo(Args&&... args) -> decltype(enable_if<argspec::check(args...)>, foo)) {
-  auto const args         = reflow::parse(argspec, std::forward<Args>(args)...);
-  auto       my_int       = args["foo"_p];
+  auto const args = reflow::parse(argspec, std::forward<Args>(args)...);
+  auto       my_int = args["foo"_p];
   auto       my_something = args["bar"_p];
   /*...*/
 }
