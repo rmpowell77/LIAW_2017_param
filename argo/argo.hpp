@@ -127,8 +127,10 @@ inline auto const collect = [](auto named_type_argptr_pairs,
                                auto named_type_kwargptr_pairs) constexpr {
   using boost::hana::concat;
   using boost::hana::to_map;
+  using boost::hana::unpack;
+  using boost::hana::make_map;
 
-  return to_map(concat(named_type_argptr_pairs, named_type_kwargptr_pairs));
+  return unpack(concat(named_type_argptr_pairs, named_type_kwargptr_pairs), make_map);
 };
 
 inline auto const invoke_swizzled = [](auto   arg_order,
