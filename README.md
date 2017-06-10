@@ -179,10 +179,16 @@ This effectively creates a new overload of ```foo()```.  When users specify all 
 
 ## Contributors
 
-	* Arthur O'Dwyer
-	* Richard Powell
-	* Gašper Ažman
-	* Odin Holmes
+### Initial concept and implementation
 
-ARGO!
+	* _A_rthur O'Dwyer
+	* _R_ichard Powell
+	* _G_ašper Ažman
+	* _O_din Holmes
+
+### Additional patches, counsel, and all around awesomeness contributed by:
+
+	* Louis Dionne
+
+
 
