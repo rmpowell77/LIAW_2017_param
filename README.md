@@ -181,14 +181,14 @@ This effectively creates a new overload of ```foo()```.  When users specify all 
 
 ### Initial concept and implementation
 
-	* _A_rthur O'Dwyer
-	* _R_ichard Powell
-	* _G_ašper Ažman
-	* _O_din Holmes
+* _A_rthur O'Dwyer
+* _R_ichard Powell
+* _G_ašper Ažman
+* _O_din Holmes
 
-### Additional patches, counsel, and all around awesomeness contributed by:
+### Additional patches, counsel, and all around awesomeness:
 
-	* Louis Dionne
+* Louis Dionne
 
 
 
