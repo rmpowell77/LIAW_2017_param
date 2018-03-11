@@ -8,9 +8,9 @@ After several working sessions, our group came to the conclusion that Boost Para
 
 The contributors determine that while this library could be the basis of a way of having named parameters, it would be better to have this as a language feature.  This proof of concept library shows some basic functionality, but when all the complexity of overloads, templates, and Koenig lookup rules, this library may not be what users need.
 
-This library is called ARGO after it's creators (Arthur, Richard, Gašper, and Odin).
+This library is called ```argo``` after it's creators (Arthur, Richard, Gašper, and Odin).
 
-## ARGO Parameter Goal
+## ```argo``` Parameter Goal
 
 The intent of the library is to allow the users to use name parameters with minimal changes to their code.  For instance, we want to enable users to write functions as:
 
@@ -20,33 +20,31 @@ int foo(int a, int b, int c);
 
 // main.cpp
 int main() {
-	foo(1, "c"_p = 3); // foo(1, 98, 3);
+	foo(1, "c"_arg = 3); // foo(1, 98, 3);
 }
 ```
 
 The idea is to have a set of parameters set by the users, default parameters, and named parameters.
 
-To enable this functionality, users have two choices.  If they would like to rewrite a new flexible API, they can use argo directly. 
+To enable this functionality, users have two choices.  If they would like to rewrite a new flexible API, they can use ```argo``` directly. 
 
 ``` c++
 // foo.h
 int foo_impl(int a, int b, int c);
 
-constexpr auto foo_argspec = argo::argspec(
-    "a"_arg = nodefault(int),
+using namespace argo::literals;
+const auto foo_argspec = argo::argspec(
+    "a"_arg, // no default value
     "b"_arg = 98,
-    "c"_arg = 99,
+    "c"_arg = 99
 );
-template <typename... Args> int foo(Args&&... args)
-{
-    return argo::invoke_with_args(foo_impl, args);
-}
 
+const auto foo = argo::adapt(foo_argspec, foo_impl);
 
 // main.cpp
 
 int main() {
-	foo(1, "c"_p = 3); // foo(1, 98, 3);
+	foo(1, "c"_arg = 3); // foo(1, 98, 3);
 }
 
 ```
@@ -63,13 +61,13 @@ int foo(int a, int b, int c);
 using namespace argo;
 
 CreateNameParameter_table(foo)
-    "a"_p = no_default,
-    "b"_p = 98,
-    "c"_p = 99,
+    "a"_arg,
+    "b"_arg = 98,
+    "c"_arg = 99,
 End_CreateNameParameter_table()
 
 int main() {
-	foo(1, "c"_p = 3); // foo(1, 98, 3);
+	foo(1, "c"_arg = 3); // foo(1, 98, 3);
 }
 ```
 
@@ -87,22 +85,76 @@ By having this approach, clients would not be required to change their functions
 
 A secondary goal is to allow users to create "customization points" to allow you to create parameter values based off of other parameters.
 
-## ARGO Parameter Implementation details
+## ```argo``` Parameter Implementation Details
+
+To explain the mechanics behind ```argo```, we will use this example:
+
+``` c++
+int foo_impl(int a, int b, int c);
+
+using namespace argo::literals;
+const auto foo_argspec = argo::argspec(
+    "a"_arg, // no default value
+    "b"_arg = 98,
+    "c"_arg = 99
+);
+
+const auto foo = argo::adapt(foo_argspec, foo_impl);
+
+int main() {
+  foo(1, "c"_arg = 3); // foo(1, 98, 3);
+}
+```
+
+
+
+### ```argo::argspec``` and parameter types
+
+There are two types ```argo``` uses for parameters, ```named_param``` (basically args) and ```boxed_param``` (what we call keyword args or kwargs).  ```named_param``` are parameters that have been given names, and ```boxed_param``` are parameters that have both a name and a value.  In our example above, the User-defined literal ```_arg``` will take any string and make it into a ```named_param``` (the value ```"a"_arg``` above).  ```named_param``` overloads ```operator=``` so that the expression results in a ```boxed_param``` (the value ```"b"_arg = 98``` above).
+
+```argspec``` returns a ```hana::tuple``` of the ```named_param``` and ```boxed_param``` for a function.  It is required that you supply a parameter for each argument to a function.  ```boxed_param```s must follow parameters that have no default value.  The supplied default value must be convertable to the argument's value.
+
+### ```argo::adapt```
+
+The ```argo::adapt``` function creates a lambda that when invoked will collect the arguments into a ```hana::tuple``` of values, ```named_param```s and ```box_param```s.  This ```tuple``` is then parsed during Argument Resolution.
+
+### Argument Resolution
 
 The argument parameter resolution works as follows:
 
-	Unpack -> Collect -> Transform -> Swizzle -> Apply
+	Unpack -> NameArgs -> AddDefaults -> Collect -> Transform -> Swizzle -> Apply
 
 #### Unpack
 
 ``` c++
- * unpack :: hana::tuple -> hana::tuple, hana::map
  * unpack: arglist -> args, kwargs
 ```
 
-First, the arguments are unpacked from a hana::tuple to a { hana::tuple, hana::map }.  This step is to separate the supplied arguments into a list of users supplied regular arguments, and a list of user supplied named arugments.
+First, the arguments are split into two lists, the "regular" arguments (args), and the named arguments (kwargs).  For example, in above:
 
-  arg(1, "c"_p = 3) -> hana::tuple(1, "c"_p = 3) -> { hana::tuple(1) , hana::map({"c"_p, 3}) } 
+```
+  foo(1, "c"_arg = 3) -> hana::tuple(1, "c"_arg = 3) -> { hana::tuple(1) , hana::tuple({"c", 3}) } 
+```
+
+#### NameArgs
+
+``` c++
+ * nameargs: args -> kwargs
+```
+
+We then need to give names to the "regular" arguments supplied.  We use the argspec values to assign the value arguments names in the order of the argspec.
+
+```
+  { hana::tuple(1) , hana::tuple({"c", 3}) } -> { hana::tuple({"a", 1}), hana::tuple({"c", 3}) } 
+```
+
+#### AddDefaults
+
+We extract any kwargs from the argspec provided and append it to the tuple of kwargs.  We append it because when the hana::map of values is created, we want to supply defaults for the values that have not been supplied by the user.
+
+```
+  { hana::tuple({"a", 1}), hana::tuple({"c", 3}) } -> { hana::tuple({"a", 1}), hana::tuple({"c", 3}), hana::tuple({"b", 98}, {"c", 99}) } 
+```
 
 #### Collect
 
@@ -115,15 +167,9 @@ First, the arguments are unpacked from a hana::tuple to a { hana::tuple, hana::m
 
 Once unpacked, the arguments are then collected into a mapping of the supplied arguments and the named parameters.
 
-#### Transform
-
-``` c++
- * transform: argspec, hana::map -> hana::map (fuller)
 ```
-
-We then transform the map and add default values, and new named parameters, and other itmes.
-
-  hana::map({0, 1}, {1, 98}, { 2, 3 }};
+  { hana::tuple({"a", 1}), hana::tuple({"c", 3}), hana::tuple({"b", 98}, {"c", 99}) } -> hana::map({"a", 1}, {"c", 3}, {"b", 98})
+```
 
 #### Swizzle
 
@@ -131,9 +177,12 @@ We then transform the map and add default values, and new named parameters, and 
  * swizzle: ordering, hana::map -> hana::tuple
 ```
 
-Then finally we unroll into a tuple.
+We then take the argspec name ordering and extract those from the map
 
-  hana::map({0, 1}, {1, 98}, { 2, 3 }) -> hana::tuple(1, 98, 3);
+```
+  argspec -> hana::tuple("a", "b", "c");
+  hana::map({"a", 1}, {"c", 3}, {"b", 98}) -> hana::tuple(1, 98, 3);
+```
 
 #### Apply
 
@@ -152,9 +201,9 @@ The CreateNameParameter_table() macro creates a new variadic template:
 
 ``` c++
 CreateNameParameter_table(foo)
-    "a"_p = no_default,
-    "b"_p = 98,
-    "c"_p = 99,
+    "a"_arg = no_default,
+    "b"_arg = 98,
+    "c"_arg = 99,
 End_CreateNameParameter_table()
 ```
 
@@ -163,9 +212,9 @@ template <typename Args...>
 auto foo(Args... args) {
 ...
 
-    "a"_p = no_default,
-    "b"_p = 98,
-    "c"_p = 99,
+    "a"_arg = no_default,
+    "b"_arg = 98,
+    "c"_arg = 99,
 ...
 }
 ```

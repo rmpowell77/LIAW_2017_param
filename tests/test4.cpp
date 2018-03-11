@@ -12,7 +12,7 @@ int foo(int a, int b, int c) { return std::pow(a, b) * c; }
 
 constexpr inline auto const foo_args = [] {
   using namespace argo::literals;
-  return argo::argspec("a"_arg, "b"_arg, "c"_arg = 5);
+  return argo::argspec("a"_arg, "b"_arg = 3, "c"_arg = 5);
 }();
 
 inline auto const kwfoo = argo::adapt(foo_args, foo);

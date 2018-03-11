@@ -1,5 +1,5 @@
-#ifndef INLCUDED_ARGO_HPP
-#define INLCUDED_ARGO_HPP
+#ifndef INCLUDED_ARGO_HPP
+#define INCLUDED_ARGO_HPP
 
 /*
  * kwargs :: hana::map<param, {nothing, default<T>, value<T>}>;
@@ -20,15 +20,12 @@
  */
 
 #include <boost/hana.hpp>
-#include <iostream>
 
 namespace argo {
 
 template <typename Name, typename Value>
 struct boxed_param {
   using pair = boost::hana::pair<Name, Value>;
-  using key_type = Name;
-  using value_type = Value;
   using name = Name;
 
   // the pair is (name, (type<T>, T*))
@@ -41,7 +38,6 @@ struct is_boxed_param : std::false_type {};
 template <typename Name, typename Value>
 struct is_boxed_param<boxed_param<Name, Value>> : std::true_type {};
 
-// this is not a good name
 auto constexpr is_boxed_param_helper = [](auto const& arg) {
   using T = std::decay_t<decltype(arg)>;
   return is_boxed_param<T>{};
@@ -60,8 +56,6 @@ inline constexpr auto capture_param = [](auto&& param) constexpr {
   if
     constexpr(decltype(is_boxed_param_helper(param)){}) { return param; }
   else {
-//    std::cout<<"capturing param "<<param<<"\n";
-
     return make_pair(type<decltype(param)>{}, param);
   }
 };
@@ -85,29 +79,10 @@ struct named_param {
 
 };
 
-// keeps the order of the parameters etc.
-// template <typename... Args>
-// struct argspec_t {
-//   using names_t = boost::hana::tuple<typename Args::name...>;
-//   static constexpr names_t names = {};
-//   using arguments_t = boost::hana::tuple<Args...>;
-//   static constexpr arguments_t arguments = {};
-// };
-
-// template <typename... Args>
-// constexpr auto argspec(Args...) {
-//   return argspec_t<Args...>{};
-// }
-
 inline auto const argspec = [](auto&&... args) constexpr {
   using boost::hana::make_tuple;
   return make_tuple(static_cast<decltype(args)>(args)...);
 };
-
-
-// debugging tool
-template <typename... _>
-struct undef;
 
 /**
  * Split the parameter pack into positional and keyword argument pointers.
@@ -209,17 +184,22 @@ inline auto const decompose_arguments = [](auto argspec, auto&&... fargs) {
   using boost::hana::first;
   using boost::hana::second;
 
+  auto const args =
+      make_tuple(capture_param(static_cast<decltype(fargs)>(fargs))...);
+
+  auto const reg_args_and_kwargs =
+      split_to_posargs_namedargs(args);
+
   auto const arg_names = argspec_extract_names(argspec);
+  auto const named_type_argptr_pairs =
+      name_args(arg_names, first(reg_args_and_kwargs));
+
+  auto const named_type_kwargptr_pairs =
+      unbox_kwargs(second(reg_args_and_kwargs));
+
   auto const argspec_supplied_values =
       unbox_kwargs(second(split_to_posargs_namedargs(argspec)));
-  auto const supplied_arguments_gathered =
-      make_tuple(capture_param(static_cast<decltype(fargs)>(fargs))...);
-  auto const type_arg_pairs_and_boxed_params =
-      split_to_posargs_namedargs(supplied_arguments_gathered);
-  auto const named_type_argptr_pairs =
-      name_args(arg_names, first(type_arg_pairs_and_boxed_params));
-  auto const named_type_kwargptr_pairs =
-      unbox_kwargs(second(type_arg_pairs_and_boxed_params));
+
   auto const collected_named_type_argptr_pairs =
       collect(argspec_supplied_values, named_type_argptr_pairs, named_type_kwargptr_pairs);
   auto const extracted_args = 
@@ -253,4 +233,4 @@ constexpr auto operator"" _arg() -> named_param<Chars...> {
 
 } // namespace argo
 
-#endif
+#endif // INCLUDED_ARGO_HPP

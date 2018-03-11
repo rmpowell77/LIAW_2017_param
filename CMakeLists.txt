@@ -11,6 +11,7 @@ find_package(Boost 1.66.0)
 include_directories(${Boost_INCLUDE_DIRS})
 
 add_executable(test_foo examples/test_foo.cpp examples/foo.cpp)
+add_executable(simple_example examples/simple_example.cpp)
 add_executable(test1 tests/test1.cpp)
 add_executable(test2 tests/test2.cpp)
 add_executable(test3 tests/test3.cpp)
