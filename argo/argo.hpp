@@ -23,6 +23,30 @@
 
 namespace argo {
 
+namespace details {
+
+template <char... Chars>
+struct named_param;
+
+} // namespace details
+
+inline auto const argspec = [](auto&&... args) constexpr {
+  using boost::hana::make_tuple;
+  return make_tuple(static_cast<decltype(args)>(args)...);
+};
+
+namespace literals {
+
+template <typename CharT, CharT... Chars>
+constexpr auto operator"" _arg() -> details::named_param<Chars...> {
+  return {};
+}
+
+} // namespace literals
+
+
+namespace details {
+
 template <typename Name, typename Value>
 struct boxed_param {
   using pair = boost::hana::pair<Name, Value>;
@@ -76,11 +100,6 @@ struct named_param {
   constexpr auto get_name() const { return name{}; }
 };
 
-inline auto const argspec = [](auto&&... args) constexpr {
-  using boost::hana::make_tuple;
-  return make_tuple(static_cast<decltype(args)>(args)...);
-};
-
 /**
  * Split the parameter pack into positional and keyword argument pointers.
  *
@@ -98,7 +117,7 @@ inline auto const argspec_extract_names = [](auto&& argspec) {
   using boost::hana::make_tuple;
   using boost::hana::second;
 
-  auto const extracted_value = argo::split_to_posargs_namedargs(argspec);
+  auto const extracted_value = split_to_posargs_namedargs(argspec);
 
   auto const first_names =
       transform(first(extracted_value),
@@ -216,19 +235,14 @@ inline auto const invoke = [](auto argspec, auto&& f, auto&&... fargs) {
   return unpack(extracted_args, f);
 };
 
+} // namespace details
+
 inline auto const adapt = [](auto&& argspec, auto&& f) {
   return [argspec = static_cast<decltype(argspec)>(argspec),
           f = static_cast<decltype(f)>(f)](auto&&... args) -> decltype(auto) {
-    return invoke(argspec, f, static_cast<decltype(args)>(args)...);
+    return details::invoke(argspec, f, static_cast<decltype(args)>(args)...);
   };
 };
-
-namespace literals {
-template <typename CharT, CharT... Chars>
-constexpr auto operator"" _arg() -> named_param<Chars...> {
-  return {};
-}
-} // namespace literals
 
 } // namespace argo
 

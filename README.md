@@ -26,10 +26,12 @@ int main() {
 
 The idea is to have a set of parameters set by the users, default parameters, and named parameters.
 
-To enable this functionality, users have two choices.  If they would like to rewrite a new flexible API, they can use ```argo``` directly. 
+To enable this functionality, you create an ```argo::argspec``` and create a new invokable object with ```argo::adapt```:
 
 ``` c++
 // foo.h
+#include <argo/argo.hpp>
+
 int foo_impl(int a, int b, int c);
 
 using namespace argo::literals;
@@ -46,17 +48,24 @@ const auto foo = argo::adapt(foo_argspec, foo_impl);
 int main() {
 	foo(1, "c"_arg = 3); // foo(1, 98, 3);
 }
-
 ```
 
-A second way would be to add a table that retrofits an existing function to be used with named parameters.
+In addition, the users may not use any named parameters, and conversions work as expected.
+
+``` c++
+int main() {
+  foo(1.5); // foo(1, 98, 99);
+}
+```
+
+A future library enhancement would be to add a table that retrofits an existing function to be used with named parameters.
 
 ``` c++
 // foo.h
 int foo(int a, int b, int c);
 
 // main.cpp
-#include <argo/parameter.hpp>
+#include <argo/argo.hpp>
 
 using namespace argo;
 
@@ -68,16 +77,6 @@ End_CreateNameParameter_table()
 
 int main() {
 	foo(1, "c"_arg = 3); // foo(1, 98, 3);
-}
-```
-
-The user creates a table that describes the named parameters, and can specify that the parameters have no defaults or a set default, very similar to Python style named parameters.
-
-In addition, the users may not use any named parameters, and conversions work as expected.
-
-``` c++
-int main() {
-	foo(1.5); // foo(1, 98, 99);
 }
 ```
 
@@ -110,19 +109,19 @@ int main() {
 
 ### ```argo::argspec``` and parameter types
 
-There are two types ```argo``` uses for parameters, ```named_param``` (basically args) and ```boxed_param``` (what we call keyword args or kwargs).  ```named_param``` are parameters that have been given names, and ```boxed_param``` are parameters that have both a name and a value.  In our example above, the User-defined literal ```_arg``` will take any string and make it into a ```named_param``` (the value ```"a"_arg``` above).  ```named_param``` overloads ```operator=``` so that the expression results in a ```boxed_param``` (the value ```"b"_arg = 98``` above).
+There are two types uses for parameters, ```argo::named_param```, which are named parameters with no default values (referred frequently in this doc as args) and ```argo::boxed_param```, which are named parameters with a value (what we call keyword args or kwargs).  In our example above, the User-defined literal ```_arg``` will take any string and make it into a ```named_param``` (the value ```"a"_arg``` above).  ```named_param``` overloads ```operator=``` so that the expression results in a ```boxed_param``` (the value ```"b"_arg = 98``` above).
 
-```argspec``` returns a ```hana::tuple``` of the ```named_param``` and ```boxed_param``` for a function.  It is required that you supply a parameter for each argument to a function.  ```boxed_param```s must follow parameters that have no default value.  The supplied default value must be convertable to the argument's value.
+```argspec``` returns a ```hana::tuple``` of the ```named_param``` and ```boxed_param``` for a function.  It is required that you supply a parameter for each argument to a function.  ```boxed_param``` must follow parameters that have no default value.  The supplied default value must be convertable to the argument's value.
 
 ### ```argo::adapt```
 
-The ```argo::adapt``` function creates a lambda that when invoked will collect the arguments into a ```hana::tuple``` of values, ```named_param```s and ```box_param```s.  This ```tuple``` is then parsed during Argument Resolution.
+The ```argo::adapt``` function creates a lambda that when invoked will collect the arguments into a ```hana::tuple``` of values, ```named_param``` and ```box_param```.  This ```tuple``` is then parsed during Argument Resolution.
 
 ### Argument Resolution
 
 The argument parameter resolution works as follows:
 
-	Unpack -> NameArgs -> AddDefaults -> Collect -> Transform -> Swizzle -> Apply
+	Unpack -> NameArgs -> AddDefaults -> Collect -> Swizzle -> Apply
 
 #### Unpack
 
@@ -197,6 +196,8 @@ Finally, this tuple is applied to the target function:
 
 ### CreateNameParameter_table
 
+This is a possible future enhancement to the library.
+
 The CreateNameParameter_table() macro creates a new variadic template:
 
 ``` c++
@@ -208,7 +209,7 @@ End_CreateNameParameter_table()
 ```
 
 ``` c++
-template <typename Args...>
+template <typename ... Args>
 auto foo(Args... args) {
 ...
 
@@ -220,6 +221,22 @@ auto foo(Args... args) {
 ```
 
 This effectively creates a new overload of ```foo()```.  When users specify all of the arguements directly, the existing ```foo()``` overloads are not called.  
+
+The current blocking challenge is how to have ```argo::adapt``` not match against the current template function that it is defined in.  Essentially, how do we provide another overload that doesn't get matched when resolving the function to call (see below)?
+
+``` c++
+template <typename ... Args>
+auto foo(Args&&... args) {
+  static const auto func_argspec = argo::argspec(
+  "a"_arg,
+  "b"_arg = 3,
+  "c"_arg = 4
+  );
+  static const auto adaptor = argo::adapt(func_argspec, foo); // matches against foo(...)
+  adaptor(std::forward<Args>(args)...);
+}
+```
+
 
 ## Misc.
 
