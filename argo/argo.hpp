@@ -20,6 +20,7 @@
  */
 
 #include <boost/hana.hpp>
+#include <iostream>
 
 namespace argo {
 
@@ -28,6 +29,7 @@ struct boxed_param {
   using pair = boost::hana::pair<Name, Value>;
   using key_type = Name;
   using value_type = Value;
+  using name = Name;
 
   // the pair is (name, (type<T>, T*))
   pair value;
@@ -39,12 +41,13 @@ struct is_boxed_param : std::false_type {};
 template <typename Name, typename Value>
 struct is_boxed_param<boxed_param<Name, Value>> : std::true_type {};
 
-auto constexpr is_named_param = [](auto const& arg) {
+// this is not a good name
+auto constexpr is_boxed_param_helper = [](auto const& arg) {
   using T = std::decay_t<decltype(arg)>;
   return is_boxed_param<T>{};
 };
-auto constexpr is_not_named_param = [](auto const& arg) {
-  return std::negation<decltype(is_named_param(arg))>{};
+auto constexpr is_not_boxed_param_helper = [](auto const& arg) {
+  return std::negation<decltype(is_boxed_param_helper(arg))>{};
 };
 
 // how to capture parameters so we don't have to care about transport until
@@ -55,9 +58,11 @@ inline constexpr auto capture_param = [](auto&& param) constexpr {
   using boost::hana::type;
 
   if
-    constexpr(decltype(is_named_param(param)){}) { return param; }
+    constexpr(decltype(is_boxed_param_helper(param)){}) { return param; }
   else {
-    return make_pair(type<decltype(param)>{}, std::addressof(param));
+//    std::cout<<"capturing param "<<param<<"\n";
+
+    return make_pair(type<decltype(param)>{}, param);
   }
 };
 
@@ -73,19 +78,32 @@ struct named_param {
     using return_t = boxed_param<name, decltype(captured_param)>;
     return return_t{{name{}, captured_param}};
   }
+
+  constexpr auto get_name() const {
+    return name{};
+  }
+
 };
 
 // keeps the order of the parameters etc.
-template <typename... Args>
-struct argspec_t {
-  using names_t = boost::hana::tuple<typename Args::name...>;
-  static constexpr names_t names = {};
+// template <typename... Args>
+// struct argspec_t {
+//   using names_t = boost::hana::tuple<typename Args::name...>;
+//   static constexpr names_t names = {};
+//   using arguments_t = boost::hana::tuple<Args...>;
+//   static constexpr arguments_t arguments = {};
+// };
+
+// template <typename... Args>
+// constexpr auto argspec(Args...) {
+//   return argspec_t<Args...>{};
+// }
+
+inline auto const argspec = [](auto&&... args) constexpr {
+  using boost::hana::make_tuple;
+  return make_tuple(static_cast<decltype(args)>(args)...);
 };
 
-template <typename... Args>
-constexpr auto argspec(Args...) {
-  return argspec_t<Args...>{};
-}
 
 // debugging tool
 template <typename... _>
@@ -99,8 +117,27 @@ struct undef;
  * @param argptrs - boost::hana::tuple of param pointers.
  */
 inline auto const split_to_posargs_namedargs = [](auto type_argptr_pairs) {
-  return boost::hana::span(type_argptr_pairs, is_not_named_param);
+  return boost::hana::span(type_argptr_pairs, is_not_boxed_param_helper);
 };
+
+inline auto const argspec_extract_names = [](auto&& argspec) {
+  using boost::hana::transform;
+  using boost::hana::first;
+  using boost::hana::make_tuple;
+  using boost::hana::second;
+
+  auto const extracted_value =
+      argo::split_to_posargs_namedargs(argspec);
+
+  auto const first_names = transform(first(extracted_value),
+                   [](auto&& named_param) { return named_param.get_name(); });
+
+  auto const second_names = transform(second(extracted_value),
+                   [](auto boxed_param) { return first(boxed_param.value); });
+
+  return boost::hana::concat(first_names, second_names);
+};
+
 
 /**
  * Give names to positional arguments.
@@ -123,14 +160,16 @@ inline auto const unbox_kwargs = [](auto kwarg_ptrs) {
  * Deduplicate args and kwargs, and join them into a single hana map of
  * `pair<type<T>, T*>`.
  */
-inline auto const collect = [](auto named_type_argptr_pairs,
+inline auto const collect = [](auto named_argspec_pairs,
+                               auto named_type_argptr_pairs, 
                                auto named_type_kwargptr_pairs) constexpr {
   using boost::hana::concat;
-  using boost::hana::to_map;
-  using boost::hana::unpack;
-  using boost::hana::make_map;
+  using boost::hana::to;
+  using boost::hana::map_tag;
 
-  return unpack(concat(named_type_argptr_pairs, named_type_kwargptr_pairs), make_map);
+  // order matters as the map will not insert later items found.
+  // so first give the argptr and kwargptr, then follow with anything the argspec provides
+  return to<map_tag>(concat(concat(named_type_argptr_pairs, named_type_kwargptr_pairs), named_argspec_pairs));
 };
 
 /**
@@ -151,7 +190,8 @@ inline auto const swizzle_args = [](auto arg_order,
 
     auto const type_argptr_pair = named_type_argptr_pairs[key];
     using argtype = typename decltype(+first(type_argptr_pair))::type;
-    return static_cast<argtype>(*second(type_argptr_pair));
+    return static_cast<std::decay_t<argtype>>(second(type_argptr_pair));
+//    return static_cast<argtype>(*second(type_argptr_pair));
   });
   return params;
 };
@@ -169,18 +209,21 @@ inline auto const decompose_arguments = [](auto argspec, auto&&... fargs) {
   using boost::hana::first;
   using boost::hana::second;
 
-  auto const args_all_gathered =
+  auto const arg_names = argspec_extract_names(argspec);
+  auto const argspec_supplied_values =
+      unbox_kwargs(second(split_to_posargs_namedargs(argspec)));
+  auto const supplied_arguments_gathered =
       make_tuple(capture_param(static_cast<decltype(fargs)>(fargs))...);
   auto const type_arg_pairs_and_boxed_params =
-      split_to_posargs_namedargs(args_all_gathered);
+      split_to_posargs_namedargs(supplied_arguments_gathered);
   auto const named_type_argptr_pairs =
-      name_args(argspec.names, first(type_arg_pairs_and_boxed_params));
+      name_args(arg_names, first(type_arg_pairs_and_boxed_params));
   auto const named_type_kwargptr_pairs =
       unbox_kwargs(second(type_arg_pairs_and_boxed_params));
   auto const collected_named_type_argptr_pairs =
-      collect(named_type_argptr_pairs, named_type_kwargptr_pairs);
+      collect(argspec_supplied_values, named_type_argptr_pairs, named_type_kwargptr_pairs);
   auto const extracted_args = 
-      swizzle_args(argspec.names, collected_named_type_argptr_pairs);
+      swizzle_args(arg_names, collected_named_type_argptr_pairs);
   return extracted_args;
 };
 
