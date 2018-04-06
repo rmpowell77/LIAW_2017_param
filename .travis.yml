@@ -1,10 +1,12 @@
 language: cpp
 
+
 compiler:  
     - gcc
     - clang
 
 before_script:  
+    - sudo apt-cache search libboost
     - mkdir build
     - cd build
     - cmake ..
