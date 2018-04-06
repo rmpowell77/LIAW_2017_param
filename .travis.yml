@@ -10,6 +10,7 @@ install:
     - cd boost_1_66_0/
     - ./bootstrap.sh
     - ./b2 headers
+    - cd ..
 
 before_script:  
     - mkdir build
