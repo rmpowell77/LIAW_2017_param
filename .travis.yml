@@ -2,7 +2,7 @@ language: cpp
 
 
 compiler:  
-    - gcc
+    - gcc-6
 
 addons:
   apt:
@@ -26,12 +26,12 @@ before_script:
     - mkdir build
     - cd build
     - cmake ..
-    - ln -s /usr/bin/gcc-6 /usr/local/bin/gcc
-    - ln -s /usr/bin/g++-6 /usr/local/bin/g++
-    - export CC=/usr/bin/gcc-6
-    - export CXX=/usr/bin/g++-6
+    # - ln -s /usr/bin/gcc-6 /usr/local/bin/gcc
+    # - ln -s /usr/bin/g++-6 /usr/local/bin/g++
+    # - export CC=/usr/bin/gcc-6
+    # - export CXX=/usr/bin/g++-6
     # Check versions of gcc, g++ and cmake
-    - gcc -v && g++ -v && cmake --version
+    # - gcc -v && g++ -v && cmake --version
 
 
 script: make  
