@@ -39,5 +39,5 @@ before_script:
     - gcc -v && g++ -v && cmake --version
 
 
-script: make  
+script: make VERBOSE=1 
 
