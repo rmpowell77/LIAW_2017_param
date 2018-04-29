@@ -13,6 +13,11 @@ addons:
       - g++-6
       - cmake
 
+before_install:
+    - export CC=gcc-6
+    - export CXX=g++-6
+
+
 
 install:
     - wget -O boost_1_66_0.tar.gz http://sourceforge.net/projects/boost/files/boost/1.66.0/boost_1_66_0.tar.gz/download
@@ -31,7 +36,7 @@ before_script:
     # - export CC=/usr/bin/gcc-6
     # - export CXX=/usr/bin/g++-6
     # Check versions of gcc, g++ and cmake
-    # - gcc -v && g++ -v && cmake --version
+    - gcc -v && g++ -v && cmake --version
 
 
 script: make  
