@@ -24,8 +24,7 @@ install:
     - tar xzf boost_1_66_0.tar.gz
     - cd boost_1_66_0/
     - ./bootstrap.sh
-    # piping to dev null so I can read travis files.
-    - sudo ./b2 headers install > /dev/null
+    - sudo ./b2 headers install
     - cd ..
 
 before_script:  
