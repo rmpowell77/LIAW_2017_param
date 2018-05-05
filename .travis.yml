@@ -2,20 +2,20 @@ language: cpp
 
 
 compiler:  
-    - gcc-6
+    - gcc-7
 
 addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
     packages:
-      - gcc-6
-      - g++-6
+      - gcc-7
+      - g++-7
       - cmake
 
 before_install:
-    - export CC=gcc-6
-    - export CXX=g++-6
+    - export CC=gcc-7
+    - export CXX=g++-7
 
 
 
@@ -33,10 +33,10 @@ before_script:
     - cmake ..
     # - ln -s /usr/bin/gcc-6 /usr/local/bin/gcc
     # - ln -s /usr/bin/g++-6 /usr/local/bin/g++
-    - export CC=/usr/bin/gcc-6
-    - export CXX=/usr/bin/g++-6
+    - export CC=/usr/bin/gcc-7
+    - export CXX=/usr/bin/g++-7
     # Check versions of gcc, g++ and cmake
-    - gcc -v && g++ -v && cmake --version
+    - gcc-7 -v && g++-7 -v && cmake --version
 
 
 script: make VERBOSE=1 
