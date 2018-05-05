@@ -24,7 +24,8 @@ install:
     - tar xzf boost_1_66_0.tar.gz
     - cd boost_1_66_0/
     - ./bootstrap.sh
-    - sudo ./b2 headers install
+    # piping to dev null so I can read travis files.
+    - sudo ./b2 headers install > /dev/null
     - cd ..
 
 before_script:  
@@ -39,5 +40,7 @@ before_script:
     - gcc-7 -v && g++-7 -v && cmake --version
 
 
-script: make VERBOSE=1 
+script:
+    - make VERBOSE=1
+    - make test
 
