@@ -24,15 +24,14 @@ install:
     - tar xzf boost_1_66_0.tar.gz
     - cd boost_1_66_0/
     - ./bootstrap.sh
-    - sudo ./b2 headers install
+    - ./b2 headers
+    - sudo cp -r boost /usr/local/include
     - cd ..
 
 before_script:  
     - mkdir build
     - cd build
     - cmake ..
-    # - ln -s /usr/bin/gcc-6 /usr/local/bin/gcc
-    # - ln -s /usr/bin/g++-6 /usr/local/bin/g++
     - export CC=/usr/bin/gcc-7
     - export CXX=/usr/bin/g++-7
     # Check versions of gcc, g++ and cmake
